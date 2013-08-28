@@ -11,6 +11,34 @@ if 'south' in settings.INSTALLED_APPS:
     add_introspection_rules([], ["^sitetree\.models\.CharFieldNullable"])
 
 
+@python_2_unicode_compatible
+class ValidationMethod(models.Model):
+    """
+    The applied instance of the validation method. Contains the parameters/keyword args from the context reference that will be applied to the validation method.
+    """
+    name = models.CharField(max_length=255, help_text=_('A simple name that can be used to reference this method.'))
+    description = models.CharField(max_length=255, help_text=_('A description of what the method is checking.'))
+    method_name = models.CharField(max_length=255, help_text=_('The fully qualified method name.'))
+    parameters = models.CharField(max_length=255, null=True, blank=True, help_text=_('A JSON struct of the context parameters that should be passed to the validation method.'))
+    keyword_args = models.CharField(max_length=255, null=True, blank=True, help_text=_('A JSON struct of keyword args that should be passed to the validation method.'))
+
+    def __str__(self):
+        return self.name
+
+
+@python_2_unicode_compatible
+class TreeItemValidationMethod(models.Model):
+    """
+    Through model. Used to set sort_order so that we can apply multiple validation methods in a specific order.
+    """
+    validation_method_instance = models.ForeignKey(to=ValidationMethod, help_text=_('The validation method instance.'))
+    tree_item = models.ForeignKey(to='TreeItem', help_text=_('The Tree Item.'))
+    sort_order = models.IntegerField(help_text=_('Used to set the order that this method will be applied in. Lower numbers are processed first.'))
+
+    def __str__(self):
+        return ": ".join([self.validation_method_instance.name, self.tree_item.title])
+
+
 class CharFieldNullable(models.CharField):
     """We use custom char field to put nulls in SiteTreeItem 'alias' field.
     That allows 'unique_together' directive in Meta to work properly, so
@@ -50,6 +78,22 @@ class TreeItem(models.Model):
         (PERM_TYPE_ALL, _('All'))
     )
 
+    PERMISSIONS_ONLY = 'PO'
+    VALIDATORS_ONLY = 'VO'
+    PERMISSIONS_AND_VALIDATORS = 'P&V'
+    VALIDATORS_AND_PERMISSIONS = 'V&P'
+    PERMISSIONS_OR_VALIDATORS = 'P|V'
+    VALIDATORS_OR_PERMISSIONS = 'V|P'
+
+    RULE_ORDER_CHOICES = (
+        (PERMISSIONS_ONLY, 'Permissions Only'),
+        (VALIDATORS_ONLY, 'Validators Only'),
+        (PERMISSIONS_AND_VALIDATORS, 'Permissions and Validators'),
+        (VALIDATORS_AND_PERMISSIONS, 'Validators and Permissions'),
+        (PERMISSIONS_OR_VALIDATORS, 'Permissions or Validators'),
+        (VALIDATORS_OR_PERMISSIONS, 'Validators or Permissions'),
+    )
+
     title = models.CharField(_('Title'), max_length=100, help_text=_('Site tree item title. Can contain template variables E.g.: {{ mytitle }}.'))
     hint = models.CharField(_('Hint'), max_length=200, help_text=_('Some additional information about this item that is used as a hint.'), blank=True, default='')
     url = models.CharField(_('URL'), max_length=200, help_text=_('Exact URL or URL pattern (see "Additional settings") for this item.'), db_index=True)
@@ -69,6 +113,9 @@ class TreeItem(models.Model):
     # This is the current approach of tree representation for sitetree.
     parent = models.ForeignKey('self', verbose_name=_('Parent'), help_text=_('Parent site tree item.'), db_index=True, null=True, blank=True)
     sort_order = models.IntegerField(_('Sort order'), help_text=_('Item position among other site tree items under the same parent.'), db_index=True, default=0)
+
+    validation_methods = models.ManyToManyField(to=ValidationMethod, through=TreeItemValidationMethod)
+    rule_order = models.CharField(max_length=3, choices=RULE_ORDER_CHOICES, default=PERMISSIONS_ONLY)
 
     def save(self, force_insert=False, force_update=False, **kwargs):
         """We override parent save method to set item's sort order to its' primary

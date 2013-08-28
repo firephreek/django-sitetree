@@ -1,19 +1,87 @@
 from django.core.urlresolvers import get_urlconf, get_resolver
+from django.forms import TextInput
 from django.utils.translation import ugettext_lazy as _
 from django.utils import six
 from django.http import HttpResponseRedirect
+from django import forms
 from django.contrib import admin
 from django.contrib.admin.sites import NotRegistered
 from django.contrib import messages
 
-from .models import Tree, TreeItem
+from .models import Tree, TreeItem, ValidationMethod, TreeItemValidationMethod
 from .fields import TreeItemChoiceField
 
 from django.conf.urls import patterns, url
-
+from sitetreeapp import sitetree_registration
 
 _TREE_ADMIN = lambda: TreeAdmin
 _ITEM_ADMIN = lambda: TreeItemAdmin
+
+
+def validation_method_form():
+
+    # current_app.loader.import_default_modules()
+
+    validators = list(sorted((k, v.name)for k, v in sitetree_registration.get_validators()))
+
+    choices = (('', ''), ) + tuple(validators)
+
+    class ValidationMethodForm(forms.ModelForm):
+        validator_select = forms.ChoiceField(label=_(u'Select Validator'),
+                                             choices=choices, required=True)
+        name = forms.CharField(label=_('Name'), required=False, widget=forms.TextInput(attrs={'size': '70', 'disabled':True}))
+        method_name = forms.CharField(label=_('Method'), required=False, widget=forms.TextInput(attrs={'size': '70', 'disabled':True}))
+        description = forms.CharField(label=_('Description'), required=False, widget=forms.Textarea(attrs={'disabled':True}))
+
+        def __init__(self, *args, **kwargs):
+            super(ValidationMethodForm, self).__init__(*args, **kwargs)
+            instance = kwargs.get('instance', None)
+            if instance is not None:
+                self.fields['validator_select'].initial = instance.method_name
+
+        class Meta:
+
+            model = ValidationMethod
+
+        def clean(self):
+            data = super(ValidationMethodForm, self).clean()
+            validator_select = data.get('validator_select')
+            if validator_select:
+                validator = sitetree_registration.get_validator(validator_select)
+                data['method_name'] = validator.full_name
+                data['name'] = validator.name
+                data['description'] = validator.description
+            if not data['method_name']:
+                exc = forms.ValidationError(_('You need to select a validator'))
+                self._errors['method_name'] = self.error_class(exc.messages)
+                raise exc
+            return data
+
+    return ValidationMethodForm
+
+
+class ValidationMethodAdmin(admin.ModelAdmin):
+    model = ValidationMethod
+    form = validation_method_form()
+    list_display = ('name', 'method_name', 'parameters', 'keyword_args')
+    fieldsets = (
+        (None, {
+            'fields': ('validator_select', 'parameters', 'keyword_args')
+        }),
+        ('Current Validator', {
+            'fields': ('name', 'method_name', 'description'),
+            'classes': ('collapse', )
+        })
+    )
+
+    def __init__(self, *args, **kwargs):
+        super(ValidationMethodAdmin, self).__init__(*args, **kwargs)
+        self.form = validation_method_form()
+
+
+class TreeItemValidationMethodInline(admin.StackedInline):
+    model = TreeItemValidationMethod
+    extra = 0
 
 
 def _reregister_tree_admin():
@@ -49,13 +117,15 @@ def override_item_admin(admin_class):
 
 class TreeItemAdmin(admin.ModelAdmin):
     exclude = ('tree', 'sort_order')
+    list_display = ['validators', ]
+
     fieldsets = (
         (_('Basic settings'), {
-            'fields': ('parent', 'title', 'url',)
+            'fields': ('parent', 'title', 'url')
         }),
         (_('Access settings'), {
             'classes': ('collapse',),
-            'fields': ('access_loggedin', 'access_restricted', 'access_permissions', 'access_perm_type')
+            'fields': ('access_loggedin', 'access_restricted', 'access_permissions', 'access_perm_type', 'rule_order', )
         }),
         (_('Display settings'), {
             'classes': ('collapse',),
@@ -63,10 +133,14 @@ class TreeItemAdmin(admin.ModelAdmin):
         }),
         (_('Additional settings'), {
             'classes': ('collapse',),
-            'fields': ('hint', 'description', 'alias', 'urlaspattern')
+            'fields': ('hint', 'description', 'alias', 'urlaspattern',)
         }),
     )
-    filter_horizontal = ('access_permissions',)
+    inlines = [
+        TreeItemValidationMethodInline,
+    ]
+
+    filter_horizontal = ('access_permissions')
 
     def response_add(self, request, obj, post_url_continue='../item_%s/', **kwargs):
         """Redirects to the appropriate items' 'continue' page on item add.
@@ -249,3 +323,5 @@ class TreeAdmin(admin.ModelAdmin):
 
 
 _reregister_tree_admin()
+admin.site.register(ValidationMethod, ValidationMethodAdmin)
+admin.site.register(TreeItemValidationMethod, )

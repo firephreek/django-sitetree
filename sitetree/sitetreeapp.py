@@ -29,6 +29,8 @@ _ITEMS_PROCESSOR = None
 _I18N_TREES = []
 
 
+
+
 def register_items_hook(callable):
     """Registers a hook callable to process tree items right before they are passed to templates.
 
@@ -484,8 +486,22 @@ class SiteTree(object):
             return items
         return _ITEMS_PROCESSOR(tree_items=items, tree_sender=sender)
 
+    def import_method(self, module_name, method_name):
+        return ''
+
     def check_access(self, item, context):
         """Checks whether user have access to certain item."""
+
+        # valdiation method checks go here...
+
+        for validator in item.validation_methods.all():
+            method = sitetree_registration.get_validator(validator.method_name).method
+            parameters = [self.resolve_var(param, context)
+                          for param in validator.parameters.split(' ')]
+            print parameters
+            result = method(*parameters)
+            if not result:
+                return False
 
         if item.access_loggedin and not self._global_context['request'].user.is_authenticated():
             return False
@@ -633,3 +649,49 @@ class SiteTree(object):
 class SiteTreeError(Exception):
     """Exception class for sitetree application."""
     pass
+
+
+class ValidationMethodRef:
+    def __init__(self, short_name, description, fq_name, function):
+        self.name = short_name
+        self.description = description
+        self.full_name = fq_name
+        self.method = function
+
+
+class SiteTreeRegistration(object):
+    def __init__(self):
+        self._validators = {}
+
+    def register_validator(self, name, description, function):
+        fq_name = '.'.join([function.__module__, function.__name__])
+        self._validators[fq_name] = ValidationMethodRef(name or function.__name__, description, fq_name, function)
+
+    def print_validators(self):
+        for each in self._validators:
+            print each
+
+    def get_validators(self):
+        return self._validators.items()
+
+    def get_validator(self, fq_name):
+        return self._validators.get(fq_name, None)
+
+
+def validation_method(name=None, description=''):
+
+    def wrapper(func):
+        # Register function here...
+        sitetree_registration.register_validator(name, description, func)
+        wrapper.__name__ = func.__name__
+
+        def wrapped_func(*args, **kwargs):
+            # Call when called here...
+            func(*args, **kwargs)
+
+        return wrapped_func
+
+    return wrapper
+
+
+sitetree_registration = SiteTreeRegistration()
