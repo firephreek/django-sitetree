@@ -1,11 +1,11 @@
 {% load sitetree %}
 <ul>
 	{% for item in sitetree_items %}
-	<li class='sitetree-tree-item'>
+	<li class='sitetree-tree-item {% if item.is_current or item.in_current_branch %}{{ item.is_current|yesno:"current_item ," }}{{ item.in_current_branch|yesno:"current_branch," }}{% endif %} {{ item.css_classes }}'>
         {% if item.display_as_header %}
-            <div class='sitetree-group-header {{ item.css_classes }}'>{{ item.title_resolved }}</div>
+            <div class='sitetree-group-header'>{{ item.title_resolved }}</div>
         {% else %}
-            <a href="{% sitetree_url for item %}" {% if item.hint %}title="{{ item.hint }}"{% endif %} class="{% if item.is_current or item.in_current_branch %}{{ item.is_current|yesno:"current_item ," }}{{ item.in_current_branch|yesno:"current_branch," }}{% endif %} {{ item.css_classes }}">{{ item.title_resolved }}</a>
+            <a href="{% sitetree_url for item %}" {% if item.hint %}title="{{ item.hint }}"{% endif %}>{{ item.title_resolved }}</a>
         {% endif %}
 		{% if item.has_children %}
 			{% sitetree_children of item for menu template "sitetree/menu.html" %}
