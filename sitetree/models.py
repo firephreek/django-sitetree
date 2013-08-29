@@ -116,6 +116,8 @@ class TreeItem(models.Model):
 
     validation_methods = models.ManyToManyField(to=ValidationMethod, through=TreeItemValidationMethod)
     rule_order = models.CharField(max_length=3, choices=RULE_ORDER_CHOICES, default=PERMISSIONS_ONLY)
+    display_as_header = models.BooleanField(default=False, help_text=_('If set, will cause the tree item to be rendered as a div tag instead of an anchor/link.'))
+    css_classes = models.CharField(max_length=255, blank=True, null=True, default='', help_text=_('A space-delimited list of CSS classes that should be appended to the item.'))
 
     def save(self, force_insert=False, force_update=False, **kwargs):
         """We override parent save method to set item's sort order to its' primary

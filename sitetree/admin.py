@@ -1,5 +1,4 @@
 from django.core.urlresolvers import get_urlconf, get_resolver
-from django.forms import TextInput
 from django.utils.translation import ugettext_lazy as _
 from django.utils import six
 from django.http import HttpResponseRedirect
@@ -133,14 +132,14 @@ class TreeItemAdmin(admin.ModelAdmin):
         }),
         (_('Additional settings'), {
             'classes': ('collapse',),
-            'fields': ('hint', 'description', 'alias', 'urlaspattern',)
+            'fields': ('hint', 'description', 'alias', 'urlaspattern', 'display_as_header', 'css_classes')
         }),
     )
     inlines = [
         TreeItemValidationMethodInline,
     ]
 
-    filter_horizontal = ('access_permissions')
+    filter_horizontal = ('access_permissions', )
 
     def response_add(self, request, obj, post_url_continue='../item_%s/', **kwargs):
         """Redirects to the appropriate items' 'continue' page on item add.
@@ -183,6 +182,7 @@ class TreeItemAdmin(admin.ModelAdmin):
         my_choice_field.help_text = form.base_fields['parent'].help_text
         # Replace 'parent' TreeItem field with new appropriate one
         form.base_fields['parent'] = my_choice_field
+        form.base_fields['css_classes'].label = 'CSS Classes'
 
         # Try to resolve all currently registered url names including those in namespaces.
         if not getattr(self, 'known_url_names', False):

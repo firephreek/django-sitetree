@@ -14,8 +14,8 @@ class Migration(SchemaMigration):
             ('name', self.gf('django.db.models.fields.CharField')(max_length=255)),
             ('description', self.gf('django.db.models.fields.CharField')(max_length=255)),
             ('method_name', self.gf('django.db.models.fields.CharField')(max_length=255)),
-            ('parameters', self.gf('django.db.models.fields.CharField')(max_length=255)),
-            ('keyword_args', self.gf('django.db.models.fields.CharField')(max_length=255)),
+            ('parameters', self.gf('django.db.models.fields.CharField')(max_length=255, null=True, blank=True)),
+            ('keyword_args', self.gf('django.db.models.fields.CharField')(max_length=255, null=True, blank=True)),
         ))
         db.send_create_signal(u'sitetree', ['ValidationMethod'])
 
@@ -33,6 +33,16 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.CharField')(default='PO', max_length=3),
                       keep_default=False)
 
+        # Adding field 'TreeItem.display_as_header'
+        db.add_column(u'sitetree_treeitem', 'display_as_header',
+                      self.gf('django.db.models.fields.BooleanField')(default=False),
+                      keep_default=False)
+
+        # Adding field 'TreeItem.css_classes'
+        db.add_column(u'sitetree_treeitem', 'css_classes',
+                      self.gf('django.db.models.fields.CharField')(default='', max_length=255, null=True, blank=True),
+                      keep_default=False)
+
 
     def backwards(self, orm):
         # Deleting model 'ValidationMethod'
@@ -43,6 +53,12 @@ class Migration(SchemaMigration):
 
         # Deleting field 'TreeItem.rule_order'
         db.delete_column(u'sitetree_treeitem', 'rule_order')
+
+        # Deleting field 'TreeItem.display_as_header'
+        db.delete_column(u'sitetree_treeitem', 'display_as_header')
+
+        # Deleting field 'TreeItem.css_classes'
+        db.delete_column(u'sitetree_treeitem', 'css_classes')
 
 
     models = {
@@ -73,7 +89,9 @@ class Migration(SchemaMigration):
             'access_permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'}),
             'access_restricted': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'db_index': 'True'}),
             'alias': ('sitetree.models.CharFieldNullable', [], {'db_index': 'True', 'max_length': '80', 'null': 'True', 'blank': 'True'}),
+            'css_classes': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '255', 'null': 'True', 'blank': 'True'}),
             'description': ('django.db.models.fields.TextField', [], {'default': "''", 'blank': 'True'}),
+            'display_as_header': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'hidden': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'db_index': 'True'}),
             'hint': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '200', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
@@ -100,10 +118,10 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'ValidationMethod'},
             'description': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'keyword_args': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
+            'keyword_args': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'}),
             'method_name': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
-            'parameters': ('django.db.models.fields.CharField', [], {'max_length': '255'})
+            'parameters': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'})
         }
     }
 
