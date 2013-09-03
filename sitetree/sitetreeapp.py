@@ -238,13 +238,14 @@ class SiteTree(object):
                 # Resolve item permissions.
                 if item.access_restricted:
                     item.perms = set([u'%s.%s' % (perm.content_type.app_label, perm.codename) for perm in
-                                               item.access_permissions.select_related()])
+                                      item.access_permissions.select_related()])
             # Contextual properties.
             item.url_resolved = self.url(item)
             if template.VARIABLE_TAG_START in item.title:
                 item.title_resolved = LazyTitle(item.title)
             else:
                 item.title_resolved = item.title
+
             item.is_current = False
             item.in_current_branch = False
 
