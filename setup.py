@@ -7,13 +7,13 @@ readme = f.read()
 f.close()
 
 setup(
-    name='django-sitetree',
+    name='django-sitka-sitetree',
     version=".".join(map(str, VERSION)),
-    description='This reusable Django app introduces site tree, menu and breadcrumbs navigation elements',
+    description='Package forked from http://github.com/idlesign/django-sitetree, initial authorship courtesy of Igor Starikov.',
     long_description=readme,
-    author="Igor 'idle sign' Starikov",
-    author_email='idlesign@yandex.ru',
-    url='http://github.com/idlesign/django-sitetree',
+    author="Stryder Crown",
+    author_email='stryder@sitkatech.com',
+    url='http://github.com/firephreek/django-sitetree',
     packages=['sitetree'],
     include_package_data=True,
     zip_safe=False,
